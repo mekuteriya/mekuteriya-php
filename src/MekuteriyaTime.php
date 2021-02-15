@@ -157,6 +157,13 @@ class MekuteriyaTime extends \DateTime {
 
         return (String)$et_hour . ':' . (String)$minute . ':' . (String)parent::format('s') . ' ' . $day_division;
     }
+
+    private function westernFormatter(int $et_hour) {
+        $hour_24hr = (int)parent::format('H');
+        $minute = (int)parent::format('i');
+
+        return (String)$et_hour . ':' . (String)$minute . ':' . (String)parent::format('s');
+    }
 }
 
 /** EOF */
