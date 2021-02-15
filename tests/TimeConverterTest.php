@@ -24,4 +24,12 @@ class TimeConverterTest extends TestCase {
         $time = new MekuteriyaTime();
         $this->assertEquals(self::TIMEZONE, $time->getTimeZone()->getName());
     }
+
+    public function testTimeConversionToET() {
+        $time = new MekuteriyaTime('2:21:10 PM');
+        $this->assertEquals(
+            '8:21:10 እኩለ ቀን',
+            $time->convert()
+        );
+    }
 }
