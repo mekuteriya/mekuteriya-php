@@ -22,7 +22,7 @@ class JDNConverter {
 	    31, 31, 30, 31, 30, 31
     ];
 
-    private $jdOffset = JD_EPOCH_OFFSET_UNSET;
+    private $jdOffset = self::JD_EPOCH_OFFSET_UNSET;
 
     private $year = -1;
     private $month = -1;
@@ -61,6 +61,7 @@ class JDNConverter {
     }
 
     /**
+     * Main func 1.
      * Conversion Methods To/From the Ethiopic & Gregorian Calendars.
      */
     public function ethiopicToGregorian() {
@@ -70,20 +71,21 @@ class JDNConverter {
             else
                 $this->setEra(self::JD_EPOCH_OFFSET_AMETE_MIHRET);
         }
-        $jdn = $this->ethiopicToJDN();
+        //$jdn = $this->ethiopicToJDN();
+        $jdn = $this->ethCopticToJDN();
         return jdnToGregorian($jdn);
     }
 
     public function gregorianToEthiopic() {
         $jdn = $this->gregorianToJDN();
-        return jdnToEthiopic($jdn, $this->guessEraFromJDN($jdn));
+        return $this->jdnToEthiopic($jdn, $this->guessEraFromJDN($jdn));
     }
 
     /**
      * Conversion Methods To/From the Julian Day Number
      */
     public function guessEraFromJDN(int $jdn) {
-        return ( jdn >= (self::JD_EPOCH_OFFSET_AMETE_MIHRET + 365) ) 
+        return ( $jdn >= (self::JD_EPOCH_OFFSET_AMETE_MIHRET + 365) ) 
 			? self::JD_EPOCH_OFFSET_AMETE_MIHRET
 			: self::JD_EPOCH_OFFSET_AMETE_ALEM;
     }
@@ -145,6 +147,80 @@ class JDNConverter {
         ];
 	} 
 
+    public function gregorianToJDN() {
+		$s   = intdiv ( $this->year    ,   4 )
+		        - intdiv ( $this->year - 1,   4 )
+		        - intdiv ( $this->year    , 100 )
+		        + intdiv ( $this->year - 1, 100 )
+		        + intdiv ( $this->year    , 400 )
+		        - intdiv ( $this->year - 1, 400 )
+		;
+
+		$t   = intdiv ( 14 - $this->month, 12 );
+
+		$n   = 31 * $t * ( $this->month - 1 )
+		        + ( 1 - $t ) * ( 59 + $s + 30 * ($this->month - 3) + intdiv( (3*$this->month - 7), 5) )
+		        + $this->day - 1
+		;
+
+		$j   = self::JD_EPOCH_OFFSET_GREGORIAN
+		        + 365 * ($this->year - 1)
+		        + intdiv ( $this->year - 1,   4 )
+		        - intdiv ( $this->year - 1, 100 )
+		        + intdiv ( $this->year - 1, 400 )
+		        + $n
+		;
+
+		return $j;
+    }
+    
+    public function jdnToEthiopic(int $jdn, int $era = -1 ) {
+        if($era == -1)
+            return ( isEraSet() )
+                ? $this->jdnToEthiopic($jdn, $jdOffset )
+                : $this->jdnToEthiopic($jdn, $this->guessEraFromJDN($jdn) );
+        else {
+            $r = fmod( ($jdn - $era), 1461 ) ;
+            $n = fmod( $r, 365 ) + 365 * intdiv( $r, 1460 ) ; 
+            
+            $year = 4 * intdiv( ($jdn - $era), 1461 )
+                + intdiv( $r, 365 )
+                - intdiv( $r, 1460 )
+                ;
+            $month = intdiv( $n, 30 ) + 1;
+            $day   = fmod( $n, 30 ) + 1 ;
+            
+            return [
+                'year' => $year,
+                'month' => $month,
+                'day' => $day
+            ];
+        }
+    }
+
+    /**
+	 *  Computes the Julian day number of the given Coptic or Ethiopic date.
+	 *  This method assumes that the JDN epoch offset has been set. This method
+	 *  is called by copticToGregorian and ethiopicToGregorian which will set
+	 *  the jdn offset context.
+	 */
+	private function ethCopticToJDN(int $era ) {
+		$jdn = ( $era + 365 )
+		    + 365 * ( $this->year - 1 )
+		    + quotient( $this->year, 4 )
+		    + 30 * $this->month
+		    + $this->day - 31
+		;
+	       
+		return $jdn;
+    }
+    
+    public function copticToGregorian() {
+		$this->setEra( self::JD_EPOCH_OFFSET_COPTIC );
+        //$jdn = $this->ethiopicToJDN();
+        $jdn = $this->ethCopticToJDN();
+		return $this->jdnToGregorian( jdn );
+    }
 }
 
 /** EOF */
