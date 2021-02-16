@@ -20,3 +20,4 @@ echo "<pre>";
 
 
 print_r( (new MekuteriyaDate('2020-02-03'))->convert(MekuteriyaDate::ET) );
+print_r( (new MekuteriyaDate('2012-05-25'))->convert(MekuteriyaDate::GR) );

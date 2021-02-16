@@ -45,7 +45,7 @@ class JDNConverter {
             throw Exception('Unknow era: ' . $era . ' must be either ዓ\/ዓ or ዓ\/ም.');
     }
 
-    public function isEraSet() : bool {
+    public function isEraSet() {
         return (self::JD_EPOCH_OFFSET_UNSET == $this->jdOffset) ? false : true;
     }
 
@@ -73,7 +73,7 @@ class JDNConverter {
         }
         //$jdn = $this->ethiopicToJDN();
         $jdn = $this->ethCopticToJDN();
-        return jdnToGregorian($jdn);
+        return $this->jdnToGregorian($jdn);
     }
 
     public function gregorianToEthiopic() {
@@ -95,13 +95,13 @@ class JDNConverter {
     }
 
     public function jdnToGregorian(int $j) {
-		$r2000 = fmod ( ($jdnj - self::JD_EPOCH_OFFSET_GREGORIAN), 730485 );
+		$r2000 = fmod ( ($j - self::JD_EPOCH_OFFSET_GREGORIAN), 730485 );
 		$r400  = fmod ( ($j - self::JD_EPOCH_OFFSET_GREGORIAN), 146097 );
 		$r100  = fmod ( $r400, 36524 );
 		$r4    = fmod ( $r100,  1461 );
 
-		$n     = fmod($r4,365) + 365*quotient(r4,1460);
-		$s     = quotient(r4,1095);
+		$n     = fmod($r4,365) + 365*intdiv($r4,1460);
+		$s     = intdiv($r4,1095);
 		
 
 		$aprime = 400 * intdiv ( ($j - self::JD_EPOCH_OFFSET_GREGORIAN), 146097 )
@@ -111,9 +111,9 @@ class JDNConverter {
 		           -       intdiv ( $r4  ,  1460 )
 		           -       intdiv ( $r2000, 730484 )
 		;
-		$year   = aprime + 1;
-		$t      = intdiv( (364+s-n), 306 );
-		$month  = $t * ( intdiv(n, 31) + 1 ) + ( 1 - t ) * ( intdiv((5*($n-$s)+13), 153) +  1 );
+		$year   = $aprime + 1;
+		$t      = intdiv( (364+$s-$n), 306 );
+		$month  = $t * ( intdiv($n, 31) + 1 ) + ( 1 - $t ) * ( intdiv((5*($n-$s)+13), 153) +  1 );
 		/*
 		int day    = t * ( n - s - 31*month + 32 )
 		           + ( 1 - t ) * ( n - s - 30*month - quotient((3*month - 2), 5) + 33 )
@@ -122,7 +122,7 @@ class JDNConverter {
 		
 		// int n2000 = quotient( r2000, 730484 );
 		$n +=  1 - intdiv ($r2000, 730484);
-		$day = n;
+		$day = $n;
 
 
 	   if ( ($r100 == 0) && ($n == 0) && ($r400 != 0) ) {
@@ -130,13 +130,13 @@ class JDNConverter {
 			$day = 31;
 		}
 		else {
-			$this->monthDays[2] = ( $this->isGregorianLeap( $year ) ) ? 29 : 28;
-			for ($i = 1;   i <= $this->nMonths;   ++$i) {
-				if (n <= $this->monthDays[i]) {
-					$day   = n;
+            $this->monthDays[2] = ( $this->isGregorianLeap( $year ) ) ? 29 : 28;
+			for ($i = 1;   $i <= self::nMonths;   ++$i) {
+				if ($n <= self::monthDays[$i]) {
+                    $day   = $n;
 					break;
-				}
-				$n -= $this->monthDays[i];
+                }
+				$n -= self::monthDays[$i];
 			}
 		}
 
@@ -204,22 +204,28 @@ class JDNConverter {
 	 *  is called by copticToGregorian and ethiopicToGregorian which will set
 	 *  the jdn offset context.
 	 */
-	private function ethCopticToJDN(int $era ) {
-		$jdn = ( $era + 365 )
+	private function ethCopticToJDN(int $era = -1 ) {
+        if($era == -1){
+            if($this->isEraSet())
+                return $this->ethCopticToJDN($this->jdOffset);
+            else 
+                return $this->ethCopticToJDN($this->self::JD_EPOCH_OFFSET_AMETE_MIHRET);
+        }else {
+            $jdn = ( $era + 365 )
 		    + 365 * ( $this->year - 1 )
-		    + quotient( $this->year, 4 )
+		    + intdiv( $this->year, 4 )
 		    + 30 * $this->month
-		    + $this->day - 31
-		;
+		    + $this->day - 31;
 	       
-		return $jdn;
+		    return $jdn;
+        }
     }
     
     public function copticToGregorian() {
 		$this->setEra( self::JD_EPOCH_OFFSET_COPTIC );
         //$jdn = $this->ethiopicToJDN();
         $jdn = $this->ethCopticToJDN();
-		return $this->jdnToGregorian( jdn );
+		return $this->jdnToGregorian( $jdn );
     }
 }
 
